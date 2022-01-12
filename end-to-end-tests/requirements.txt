@@ -1,0 +1,14 @@
+selenium==3.141.0
+pytest==6.0.1
+pytest-html==3.1.1
+pytest-xdist==2.3.0
+allure-pytest==2.9.43
+webdriver_manager==3.4.2
+pytest-rerunfailures==10.1
+setuptools==57.4.0
+parameterized==0.7.4
+xlrd==2.0.1
+ddt==1.4.2
+pytest-html-reporter==0.2.6
+requests~=2.26.0
+openpyxl~=3.0.9

@@ -1,0 +1,74 @@
+version: 2.1
+
+executors:
+  # NOTE: For an unknown reason, the `circleci/*-browsers` image works and the `cimg/*-browsers`
+  #   does not (the latter fails with a gpu error that can be seen by enabling chromedriver logs.
+  #   There is a difference in os versions between the two -- Ubuntu 20.04 on `cimg`, Debian 10
+  #   Buster on `circleci` -- but the root caused hasn't been confirmed.
+  test-executor:
+    docker:
+      - image: circleci/python:3.9-browsers
+
+jobs:
+  run-tests-for-browser:
+    description: Run tests with either "CHROME" or "FIREFOX" web drivers
+    parameters:
+      browser:
+        type: enum
+        enum: [ "CHROME", "FIREFOX"]
+    executor:
+      name: test-executor
+    steps:
+      - run:
+          name: Check browser install
+          command: |
+            google-chrome --version
+            chromedriver --version
+            firefox --version
+            geckodriver --version
+      - checkout
+      - run:
+          name: Install dependencies in a venv
+          command: |
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install -r requirements.txt
+      - run:
+          name: Run test suite for << parameters.browser >>
+          environment:
+            TEST_BROWSER: << parameters.browser >>
+            CHROME_OPTIONS: "--headless | --window-size=1280,800"
+          command: |
+            source venv/bin/activate
+            python ReportSetup.py
+            pytest -rx --html-report='./Reports/TestReport.html'
+      - store_artifacts:
+          path: ./Reports
+
+workflows:
+  chrome-on-push:
+    jobs:
+      - hold:
+          type: approval
+      - run-tests-for-browser:
+          name: run-tests-for-chrome
+          browser: "CHROME"
+          filters:
+            branches:
+              only:
+                - master
+                - /release-.*/
+                - develop
+
+  chrome-nightly:
+    jobs:
+      - run-tests-for-browser:
+          name: run-tests-for-chrome
+          browser: "CHROME"
+    triggers:
+      - schedule:
+          cron: "0 23 * * *" # Runs daily @ 23:00 UTC
+          filters:
+            branches:
+              only:
+                - master
